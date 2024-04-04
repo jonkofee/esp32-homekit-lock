@@ -1,0 +1,7 @@
+build/
+firmware/
+sdkconfig
+sdkconfig.old
+
+/components/**/.component_hash
+dependencies.lock

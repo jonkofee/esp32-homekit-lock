@@ -1,0 +1,9 @@
+[submodule "components/homekit"]
+	path = components/homekit
+	url = https://AchimPieters@github.com/AchimPieters/esp32-homekit.git
+[submodule "components/esp32-button"]
+	path = components/esp32-button
+	url = https://AchimPieters@github.com/AchimPieters/esp32-button.git
+[submodule "components/esp32-library"]
+	path = components/esp32-library
+	url = https://AchimPieters@github.com/UncleRus/esp-idf-lib.git
