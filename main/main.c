@@ -162,7 +162,7 @@ void accessory_identify(homekit_value_t _value) {
 }
 
 // HomeKit characteristics
-#define DEVICE_NAME "HomeKit Garage Door"
+#define DEVICE_NAME "Калитка"
 #define DEVICE_MANUFACTURER "jonkofee"
 #define DEVICE_SERIAL "NLDA4SQN1466"
 #define DEVICE_MODEL "SD466NL/A"
