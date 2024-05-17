@@ -5,3 +5,6 @@ sdkconfig.old
 
 /components/**/.component_hash
 dependencies.lock
+cmake-build-debug
+.cache
+.idea
