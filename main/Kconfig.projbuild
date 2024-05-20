@@ -2,13 +2,13 @@ menu "StudioPieters"
 
       config ESP_WIFI_SSID
               string "WiFi SSID"
-              default "myssid"
+              default "jonkofee"
               help
                   SSID (network name) for the example to connect to.
 
       config ESP_WIFI_PASSWORD
               string "WiFi Password"
-              default "mypassword"
+              default "123123123"
               help
                   WiFi password (WPA or WPA2) for the example to use.
 
@@ -18,7 +18,13 @@ menu "StudioPieters"
               help
                   The GPIO number the LED is connected to.
 
-      config ESP_RELAY_GPIO
+      config ESP_LIGHTBULB_RELAY_GPIO
+              int "Set the GPIO for the LIGHTBULB"
+              default 26
+              help
+                  The GPIO number the LED is connected to.
+
+      config ESP_LOCK_RELAY_GPIO
               int "Set the GPIO for the relay"
               default 25
               help

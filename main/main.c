@@ -86,18 +86,41 @@ static void wifi_init() {
 
 // LED control
 #define LED_GPIO CONFIG_ESP_LED_GPIO
-bool led_on = false;
-#define RELAY_GPIO CONFIG_ESP_RELAY_GPIO
-bool relay_on = false;
+#define LIGHTBULB_RELAY_GPIO CONFIG_ESP_LIGHTBULB_RELAY_GPIO
+#define LOCK_RELAY_GPIO CONFIG_ESP_LOCK_RELAY_GPIO
 uint32_t door_operation_start_time = 0;
 #define MAX_DOOR_OPERATION_TIME CONFIG_ESP_DELAY  // seconds in milliseconds
+
+void lightbulb_relay_on_set(homekit_value_t value);
+homekit_value_t lightbulb_relay_on_get();
+
+homekit_characteristic_t lightbulb_on_state = HOMEKIT_CHARACTERISTIC_(ON, false, .getter=lightbulb_relay_on_get, .setter=lightbulb_relay_on_set);
+
+void lightbulb_relay_write(bool on) {
+    gpio_set_level(LIGHTBULB_RELAY_GPIO, on ? 1 : 0);
+}
+
+homekit_value_t lightbulb_relay_on_get() {
+    return lightbulb_on_state.value;
+}
+
+void lightbulb_relay_on_set(homekit_value_t value) {
+    if (value.format != homekit_format_bool) {
+        printf("Invalid value format: %d\n", value.format);
+        return;
+    }
+
+    lightbulb_on_state.value = value;
+    homekit_characteristic_notify(&lightbulb_on_state, lightbulb_on_state.value);
+    lightbulb_relay_write(lightbulb_on_state.value.bool_value);
+}
 
 void led_write(bool on) {
         gpio_set_level(LED_GPIO, on ? 1 : 0);
 }
 
-void relay_write(bool on) {
-        gpio_set_level(RELAY_GPIO, on ? 1 : 0);
+void lock_relay_write(bool on) {
+        gpio_set_level(LOCK_RELAY_GPIO, on ? 1 : 0);
 }
 
 // Forward declaration
@@ -111,34 +134,48 @@ homekit_characteristic_t garage_door_target_state = HOMEKIT_CHARACTERISTIC_(TARG
 void garage_door_target_state_set(homekit_value_t value);
 
 void garage_door_target_state_set(homekit_value_t value) {
-        // No obstruction check for this version
-        garage_door_obstruction_detected.value = HOMEKIT_BOOL(false);
-        homekit_characteristic_notify(&garage_door_obstruction_detected, garage_door_obstruction_detected.value);
-
-        relay_write(true);
-        garage_door_current_state.value = HOMEKIT_UINT8(HOMEKIT_CHARACTERISTIC_CURRENT_DOOR_STATE_OPEN);
-        homekit_characteristic_notify(&garage_door_current_state, garage_door_current_state.value);
-        garage_door_target_state.value = HOMEKIT_UINT8(HOMEKIT_CHARACTERISTIC_TARGET_DOOR_STATE_OPEN);
-        homekit_characteristic_notify(&garage_door_target_state, garage_door_target_state.value);
-        
+        lock_relay_write(true);
         door_operation_start_time = esp_timer_get_time() / 1000; // Convert to milliseconds
         vTaskDelay(pdMS_TO_TICKS(MAX_DOOR_OPERATION_TIME)); // Simulate door operation time
+        lock_relay_write(false);
 
-        relay_write(false);
-        garage_door_current_state.value = HOMEKIT_UINT8(HOMEKIT_CHARACTERISTIC_CURRENT_DOOR_STATE_CLOSED);
+//        garage_door_target_state.value = HOMEKIT_UINT8(HOMEKIT_CHARACTERISTIC_TARGET_DOOR_STATE_OPEN);
+//        homekit_characteristic_notify(&garage_door_target_state, garage_door_target_state.value);
+        vTaskDelay(pdMS_TO_TICKS(500)); // Simulate door operation time
+
+        ESP_LOGI("CURRENT OPENING", "");
+        garage_door_current_state.value = HOMEKIT_UINT8(HOMEKIT_CHARACTERISTIC_CURRENT_DOOR_STATE_OPENING);
         homekit_characteristic_notify(&garage_door_current_state, garage_door_current_state.value);
+        vTaskDelay(pdMS_TO_TICKS(500)); // Simulate door operation time
+        ESP_LOGI("CURRENT OPEN", "");
+        garage_door_current_state.value = HOMEKIT_UINT8(HOMEKIT_CHARACTERISTIC_CURRENT_DOOR_STATE_OPEN);
+        homekit_characteristic_notify(&garage_door_current_state, garage_door_current_state.value);
+
+        vTaskDelay(pdMS_TO_TICKS(500)); // Simulate door operation time
+        ESP_LOGI("TARGET CLOSED", "");
         garage_door_target_state.value = HOMEKIT_UINT8(HOMEKIT_CHARACTERISTIC_TARGET_DOOR_STATE_CLOSED);
         homekit_characteristic_notify(&garage_door_target_state, garage_door_target_state.value);
+        vTaskDelay(pdMS_TO_TICKS(500)); // Simulate door operation time
+        ESP_LOGI("CURRENT CLOSING", "");
+        garage_door_current_state.value = HOMEKIT_UINT8(HOMEKIT_CHARACTERISTIC_CURRENT_DOOR_STATE_CLOSING);
+        homekit_characteristic_notify(&garage_door_current_state, garage_door_current_state.value);
+        vTaskDelay(pdMS_TO_TICKS(500)); // Simulate door operation time
+        ESP_LOGI("CURRENT CLOSED", "");
+        garage_door_current_state.value = HOMEKIT_UINT8(HOMEKIT_CHARACTERISTIC_CURRENT_DOOR_STATE_CLOSED);
+        homekit_characteristic_notify(&garage_door_current_state, garage_door_current_state.value);
 }
 
 
 // All GPIO Settings
 void gpio_init() {
         gpio_set_direction(LED_GPIO, GPIO_MODE_OUTPUT);
-        led_write(led_on);
+        led_write(false);
 
-        gpio_set_direction(RELAY_GPIO, GPIO_MODE_OUTPUT);
-        relay_write(relay_on);
+        gpio_set_direction(LIGHTBULB_RELAY_GPIO, GPIO_MODE_OUTPUT);
+        lightbulb_relay_write(false);
+
+        gpio_set_direction(LOCK_RELAY_GPIO, GPIO_MODE_OUTPUT);
+        lock_relay_write(false);
 }
 
 // Accessory identification
@@ -146,13 +183,16 @@ void accessory_identify_task(void *args) {
         for (int i = 0; i < 3; i++) {
                 for (int j = 0; j < 2; j++) {
                         led_write(true);
+                        lightbulb_relay_write(true);
                         vTaskDelay(pdMS_TO_TICKS(100));
                         led_write(false);
+                        lightbulb_relay_write(false);
                         vTaskDelay(pdMS_TO_TICKS(100));
                 }
                 vTaskDelay(pdMS_TO_TICKS(250));
         }
-        led_write(led_on);
+        led_write(false);
+        lightbulb_relay_write(false);
         vTaskDelete(NULL);
 }
 
@@ -194,10 +234,19 @@ homekit_accessory_t *accessories[] = {
                         GARAGE_DOOR_OPENER,
                         .primary = true,
                         .characteristics = (homekit_characteristic_t*[]) {
-                        HOMEKIT_CHARACTERISTIC(NAME, "Garage Door"),
+                        HOMEKIT_CHARACTERISTIC(NAME, "Калитка"),
                         &garage_door_current_state,
                         &garage_door_target_state,
                         &garage_door_obstruction_detected,
+                        NULL
+                },
+                        ),
+                HOMEKIT_SERVICE(
+                        LIGHTBULB,
+                        .primary = false,
+                        .characteristics = (homekit_characteristic_t*[]) {
+                        HOMEKIT_CHARACTERISTIC(NAME, "Свет"),
+                        &lightbulb_on_state,
                         NULL
                 },
                         ),
