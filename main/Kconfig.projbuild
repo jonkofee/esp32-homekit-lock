@@ -32,7 +32,7 @@ menu "StudioPieters"
 
       config ESP_DELAY
               int "Wait for 5 seconds"
-              default 50
+              default 100
               help
                 The GPIO number the A3144 sensor is connected to.
 
