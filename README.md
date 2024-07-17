@@ -12,7 +12,7 @@ docker pull espressif/idf:latest
 git clone --recursive https://github.com/jonkofee/esp32-homekit-lock.git
 ```
 ```
-`docker run -it -v ./:/project -w /project espressif/idf:latest`
+docker run -it -v ./:/project -w /project espressif/idf:latest
 ```
 ```
 idf.py set-target esp32
